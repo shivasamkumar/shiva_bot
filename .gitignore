@@ -1,0 +1,13 @@
+# python
+__pycache__/
+*.pyc
+
+# dotenv secrets
+api/.env
+
+# vector DB / large binaries
+api/vector_db/
+
+# VSCode, macOS, etc.
+.vscode/
+.DS_Store

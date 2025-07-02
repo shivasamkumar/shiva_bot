@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shiva Bot</title>
+  <link rel="stylesheet" href="/static/style.css">
+
+  <!-- marked.js for Markdown → HTML -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    // Configure marked for better rendering
+    marked.setOptions({
+      breaks: true,           // Enable single-line breaks as <br>
+      gfm: true,             // GitHub Flavored Markdown
+      headerIds: false,      // Don't add IDs to headers
+      mangle: false,         // Don't escape autolinks
+      sanitize: false,       // Allow HTML (be careful with user input!)
+      smartLists: true,      // Use smarter list behavior
+      smartypants: true,     // Use "smart" typographic punctuation
+      xhtml: false,          // Use HTML5 void tag style
+      pedantic: false,       // Don't be overly strict
+      silent: true          // Don't throw errors on malformed markdown
+    });
+  </script>
+</head>
+<body>
+  <h1 style="text-align: center; color: #333; margin-bottom: 20px;">Shiva Bot</h1>
+  
+  <div id="chat-log"></div>
+
+  <div id="chat-input-area">
+    <input id="chat-input" placeholder="Ask Shiva…" autocomplete="off" />
+    <button id="send-btn">Send</button>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
