@@ -11,3 +11,4 @@ api/vector_db/
 # VSCode, macOS, etc.
 .vscode/
 .DS_Store
+vector_db/
