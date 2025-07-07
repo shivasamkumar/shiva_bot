@@ -9,7 +9,8 @@ from pydantic import BaseModel
 import json
 import time
 
-from vectorstore_loader import get_vectorstore
+# from vectorstore_loader import get_vectorstore
+from api.vectorstore_loader import get_vectorstore
 from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts.chat import (
@@ -43,9 +44,8 @@ retriever = vectorstore.as_retriever(search_kwargs={"k":20})
 system_template = """
 You are **Shiva**, a friendly virtual assistant for Shiva Sam Kumar Govindan.
 Only answer from the information provided to you, dont assume. 
-You don't have to use all the information given to you, be short and to the Point.
-Be Short, crisp and Always to the point.cd api  
-Be as short as possible.
+From the information given to you,answer, be short, crisp and to the Point.
+Be as short as possible, dont provide long answers.
 Reply in clean, well-formatted Markdown.
 
 Use proper markdown formatting:
@@ -80,7 +80,7 @@ conversation_chain = ConversationalRetrievalChain.from_llm(
 
 def chat(question: str) -> str:
     """Non-streaming convenience wrapper."""
-    return conversation_chain({"question": question})["answer"]
+    return conversation_chain.invoke({"question": question})["answer"]
 
 # ─── 4) FastAPI setup ───────────────────────────────────────────
 app = FastAPI()
