@@ -22,7 +22,7 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       z-index: 9999;
       white-space: nowrap;
-      animation: shiva-flash 1s ease-in-out 5;
+      animation: shiva-flash 1s ease-in-out 3;
       pointer-events: none;      /* clicks fall through to the button */
     }
     /* hide once opened */
@@ -43,7 +43,7 @@
       cursor: pointer;
       z-index: 9999;
       transition: background-color 0.2s ease;
-      animation: shiva-flash 1s ease-in-out 5;
+      animation: shiva-flash 1s ease-in-out 3;
     }
     #shiva-chat-btn.open {
       background-color: #0056b3;
