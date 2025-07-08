@@ -54,8 +54,8 @@
       position: fixed;
       bottom: 100px;
       right: 24px;
-      width: 360px;
-      height: 500px;
+      width: 400px;
+      height: 550px;
       display: none;
       box-shadow: 0 8px 24px rgba(0,0,0,0.2);
       border-radius: 8px;
