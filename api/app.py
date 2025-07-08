@@ -10,7 +10,7 @@ import json
 import time
 
 # from vectorstore_loader import get_vectorstore
-from api.vectorstore_loader import get_vectorstore
+from .vectorstore_loader import get_vectorstore
 from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts.chat import (
@@ -18,6 +18,7 @@ from langchain.prompts.chat import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
+from langchain_core.callbacks import StdOutCallbackHandler
 from langchain.chains import ConversationalRetrievalChain
 
 # ─── 1) Load ENV ────────────────────────────────────────────────
@@ -76,11 +77,12 @@ conversation_chain = ConversationalRetrievalChain.from_llm(
         "prompt": prompt,
         "document_variable_name": "context",
     },
+    callbacks= [StdOutCallbackHandler()]
 )
 
 def chat(question: str) -> str:
     """Non-streaming convenience wrapper."""
-    return conversation_chain({"question": question})["answer"]
+    return conversation_chain.invoke({"question": question})["answer"]
 
 # ─── 4) FastAPI setup ───────────────────────────────────────────
 app = FastAPI()
