@@ -9,6 +9,27 @@
       50%      { transform: scale(1.2); box-shadow: 0 0 20px rgba(0,123,255,0.8); }
     }
 
+    /* chat label */
+    #shiva-chat-label {
+      position: fixed;
+      bottom: 110px;             /* sits just above the button */
+      right: 50px;
+      background:rgb(44, 49, 102);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 9999;
+      white-space: nowrap;
+      animation: shiva-flash 1s ease-in-out 3;
+      pointer-events: none;      /* clicks fall through to the button */
+    }
+    /* hide once opened */
+    #shiva-chat-label.hidden {
+      display: none;
+    }
+
     /* chat button */
     #shiva-chat-btn {
       position: fixed;
@@ -22,8 +43,7 @@
       cursor: pointer;
       z-index: 9999;
       transition: background-color 0.2s ease;
-      /* start the flash animation on load: 3 pulses */
-      animation: shiva-flash 1s ease-in-out 3;
+      animation: shiva-flash 1s ease-in-out 10;
     }
     #shiva-chat-btn.open {
       background-color: #0056b3;
@@ -45,7 +65,6 @@
     }
     #shiva-chat-container.open {
       display: block;
-      /* once opened, remove any lingering animation */
       animation: none !important;
     }
     #shiva-chat-container iframe {
@@ -54,7 +73,7 @@
       border: none;
     }
 
-    /* expand button inside chat */
+    /* expand button */
     #shiva-chat-expand {
       position: absolute;
       top: 8px;
@@ -70,7 +89,12 @@
   style.textContent = css;
   document.head.appendChild(style);
 
-  // 2) create chat button + container
+  // 2) create chat label, button & container
+  const label = document.createElement('div');
+  label.id = 'shiva-chat-label';
+  label.textContent = 'Chat with me';
+  document.body.appendChild(label);
+
   const btn = document.createElement('div');
   btn.id = 'shiva-chat-btn';
   document.body.appendChild(btn);
@@ -83,17 +107,18 @@
   `;
   document.body.appendChild(container);
 
-  // 3) toggle open/close on click
+  // 3) toggle open/close on click, hide label
   btn.addEventListener('click', () => {
-    btn.classList.toggle('open');
+    const isOpen = btn.classList.toggle('open');
     container.classList.toggle('open');
+    label.classList.toggle('hidden', isOpen);
   });
 
-  // 4) expand to full screen in new tab
+  // 4) expand to full screen
   container
     .querySelector('#shiva-chat-expand')
     .addEventListener('click', e => {
-      e.stopPropagation();      // don’t close the widget
+      e.stopPropagation();
       window.open(CHAT_URL, '_blank');
     });
 })();
