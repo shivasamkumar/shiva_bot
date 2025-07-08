@@ -12,7 +12,7 @@
     /* chat label */
     #shiva-chat-label {
       position: fixed;
-      bottom: 110px;             /* sits just above the button */
+      bottom: 140px;             /* sits just above the button */
       right: 50px;
       background:rgb(44, 49, 102);
       color: #fff;
