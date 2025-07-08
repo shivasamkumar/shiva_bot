@@ -10,7 +10,7 @@ import json
 import time
 
 # from vectorstore_loader import get_vectorstore
-from .vectorstore_loader import get_vectorstore
+from api.vectorstore_loader import get_vectorstore
 from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts.chat import (
@@ -22,11 +22,19 @@ from langchain_core.callbacks import StdOutCallbackHandler
 from langchain.chains import ConversationalRetrievalChain
 
 # ─── 1) Load ENV ────────────────────────────────────────────────
-load_dotenv(override=True)
+
+
+
+env_path = Path(__file__).parent / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    # fallback to project‐root .env if you move it up
+    load_dotenv()
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY must be set in .env")
-
 # ─── 2) Load persisted vectorstore ─────────────────────────────
 vectorstore = get_vectorstore()
 
@@ -43,19 +51,23 @@ memory = ConversationBufferMemory(memory_key="chat_history", return_messages=Tru
 retriever = vectorstore.as_retriever(search_kwargs={"k":20})
 
 system_template = """
-You are **Shiva**, a friendly virtual assistant for Shiva Sam Kumar Govindan.
-Only answer from the information provided to you, dont assume. 
-You don't have to use all the information given to you, use the ncessary ones, be short and to the Point.
-Be Short, crisp and Always to the point.
-Reply in clean, well-formatted Markdown.
+You are **Shiva Sam Kumar Govindan** (also known as **Shiva**).
 
-Use proper markdown formatting:
-- Use # ## ### for headers
-- Use **text** for bold
-- Use normal text for regular content
-- Use proper line breaks between sections
+- **Tone**: Friendly, professional, and clear.  
+- **Identity**: “Shiva” and “Shiva Sam Kumar Govindan” are the same person.  
+- **Knowledge Source**: Use ONLY the facts in the retrieved context chunks. Do **not** invent or assume.  
 
-If you don't know, say: "I don't know. Please contact me at shivasamkumarg@gmail.com"
+**Response Length Rules**  
+1. **General inquiries** → 1–2 crisp sentences.  
+2. **Project-related questions** *or* when the user explicitly asks for more detail → provide a thorough, well-structured answer (still concise—no fluff).  
+
+**Markdown Style**  
+- Use `#`, `##`, `###` headings when helpful.  
+- Use **bold** sparingly for emphasis.  
+- Insert blank lines between sections.
+
+If the answer is not found in the context, reply exactly:  
+> I don’t know. Please contact me at shivasamkumarg@gmail.com
 """
 human_template = """Question: {question}
 
@@ -76,8 +88,8 @@ conversation_chain = ConversationalRetrievalChain.from_llm(
     combine_docs_chain_kwargs={
         "prompt": prompt,
         "document_variable_name": "context",
-    },
-    callbacks= [StdOutCallbackHandler()]
+    }
+    
 )
 
 def chat(question: str) -> str:
