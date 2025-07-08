@@ -1,1 +1,1 @@
-web: uvicorn api.app:app --host 0.0.0.0 --port $PORT
+web: cp -R vector_db /tmp/vector_db && uvicorn api.app:app --host=0.0.0.0 --port=${PORT}

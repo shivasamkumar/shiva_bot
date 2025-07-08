@@ -4,17 +4,19 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain_chroma import Chroma
 
 def get_vectorstore():
-    # 1) decide base directory for your persist files
-    if os.getenv("DYNO"):  # running on Heroku dyno
+    if os.getenv("DYNO"):
+        # on Heroku, we just copied into /tmp/vector_db
         persist_dir = Path("/tmp") / "vector_db"
-    else:                  # local run
-        base = Path(__file__).parent.parent  # your repo root (/app locally)
-        rel  = os.getenv("VECTORDB_PATH", "vector_db")
-        persist_dir = (base / rel).resolve()
+    else:
+        # local development, point at your committed folder
+        base = Path(__file__).parent.parent
+        persist_dir = (base / "vector_db").resolve()
 
-    # 2) make sure it exists
-    persist_dir.mkdir(parents=True, exist_ok=True)
-
-    print(f"[vectorstore_loader] loading embeddings from → {persist_dir}")
+    # on Heroku it's already there, and on your machine ingest.py created it,
+    # so we don't mkdir here—just load:
+    print(f"[vectorstore_loader] opening vectorstore at → {persist_dir}")
     embeddings = OpenAIEmbeddings()
-    return Chroma(persist_directory=str(persist_dir), embedding_function=embeddings)
+    return Chroma(
+        persist_directory=str(persist_dir),
+        embedding_function=embeddings,
+    )
