@@ -10,7 +10,7 @@
       right: 24px;
       width: 56px;
       height: 56px;
-      background: #007bff url('https://your-cdn.com/chat-icon.svg') no-repeat center/60% auto;
+      background: #007bff url('https://shiva-bot-7b7a47a4404f.herokuapp.com/icons8-chat-64.png') no-repeat center/60% auto;
       border-radius: 50%;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       cursor: pointer;
