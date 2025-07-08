@@ -18,7 +18,7 @@
       color: #fff;
       padding: 6px 12px;
       border-radius: 4px;
-      font-size: 0.9rem;
+      font-size: 1.5rem;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       z-index: 9999;
       white-space: nowrap;
