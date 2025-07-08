@@ -33,7 +33,7 @@
     /* chat button */
     #shiva-chat-btn {
       position: fixed;
-      bottom: 34px;
+      bottom: 64px;
       right: 50px;
       width: 66px;
       height: 66px;
