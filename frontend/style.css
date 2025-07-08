@@ -284,3 +284,50 @@ body {
   height: 100%;
   border: none;
 }
+
+#chat-widget-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+
+  /* start closed: only show the toggle button */
+  width: 60px;
+  height: 60px;
+  transition: width 0.3s ease, height 0.3s ease;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+/* the chat bubble */
+#chat-toggle {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #007bff;
+  color: white;
+  font-size: 1.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* when opened, expand to show the iframe */
+#chat-widget-container:not(.closed) {
+  width: 360px;   /* adjust as you like */
+  height: 500px;  /* adjust as you like */
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-radius: 8px;
+}
+
+/* always hide the iframe while closed */
+#chat-iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 8px;
+}
+
+/* only show iframe when open */
+#chat-widget-container.closed #chat-iframe {
+  display: none;
+}
+

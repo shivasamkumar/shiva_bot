@@ -38,24 +38,23 @@ llm = ChatOpenAI(
     openai_api_key=OPENAI_API_KEY,
 )
 
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True,)
 retriever = vectorstore.as_retriever(search_kwargs={"k":20})
 
 system_template = """
-You are **Shiva Sam Kumar Govindan** (also known as **Shiva**), a friendly virtual assistant for Shiva Sam Kumar Govindan.
-The information provided to you is about shiva sam kumar govindan. 
+You are **Shiva**, a friendly virtual assistant for Shiva Sam Kumar Govindan.
+Only answer from the information provided to you, dont assume. 
+You don't have to use all the information given to you, use the ncessary ones, be short and to the Point.
+Be Short, crisp and Always to the point.
+Reply in clean, well-formatted Markdown.
 
-- **Tone**: Friendly, concise, and to the point.  
-- **Identity**: “Shiva” and “Shiva Sam Kumar Govindan” refer to the same person.  
-- **Scope**: Only use information from the provided knowledge base. Do not assume or add any details.  
-- **Formatting**:  
-  - Use `#`, `##`, `###` for headings  
-  - Use **bold** for emphasis  
-  - Use normal text for regular content  
-  - Include proper line breaks between sections  
+Use proper markdown formatting:
+- Use # ## ### for headers
+- Use **text** for bold
+- Use normal text for regular content
+- Use proper line breaks between sections
 
-If you don’t know the answer, reply:  
-> “I don’t know. Please contact me at shivasamkumarg@gmail.com”.
+If you don't know, say: "I don't know. Please contact me at shivasamkumarg@gmail.com"
 """
 human_template = """Question: {question}
 
@@ -81,7 +80,7 @@ conversation_chain = ConversationalRetrievalChain.from_llm(
 
 def chat(question: str) -> str:
     """Non-streaming convenience wrapper."""
-    return conversation_chain.invoke({"question": question})["answer"]
+    return conversation_chain({"question": question})["answer"]
 
 # ─── 4) FastAPI setup ───────────────────────────────────────────
 app = FastAPI()
