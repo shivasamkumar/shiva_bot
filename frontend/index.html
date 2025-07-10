@@ -9,24 +9,26 @@
   <!-- marked.js for Markdown → HTML -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
-    // Configure marked for better rendering
     marked.setOptions({
-      breaks: true,           // Enable single-line breaks as <br>
-      gfm: true,             // GitHub Flavored Markdown
-      headerIds: false,      // Don't add IDs to headers
-      mangle: false,         // Don't escape autolinks
-      sanitize: false,       // Allow HTML (be careful with user input!)
-      smartLists: true,      // Use smarter list behavior
-      smartypants: true,     // Use "smart" typographic punctuation
-      xhtml: false,          // Use HTML5 void tag style
-      pedantic: false,       // Don't be overly strict
-      silent: true          // Don't throw errors on malformed markdown
+      breaks: true,
+      gfm: true,
+      headerIds: false,
+      mangle: false,
+      sanitize: false,
+      smartLists: true,
+      smartypants: true,
+      xhtml: false,
+      pedantic: false,
+      silent: true
     });
   </script>
 </head>
 <body>
-  <!-- <h1 style="text-align: center; color: #333; margin-bottom: 20px;">Shiva Bot</h1> -->
-  
+  <!-- New Chat button -->
+  <div id="controls">
+    <button id="new-chat-btn">New Chat</button>
+  </div>
+
   <div id="chat-log"></div>
 
   <div id="chat-input-area">

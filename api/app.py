@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 import json
 import time
+from typing import Dict
 
 # from vectorstore_loader import get_vectorstore
 from api.vectorstore_loader import get_vectorstore
@@ -23,8 +24,6 @@ from langchain.chains import ConversationalRetrievalChain
 
 # ─── 1) Load ENV ────────────────────────────────────────────────
 
-
-
 env_path = Path(__file__).parent / ".env"
 if env_path.exists():
     load_dotenv(env_path)
@@ -35,36 +34,34 @@ else:
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY must be set in .env")
+
 # ─── 2) Load persisted vectorstore ─────────────────────────────
 vectorstore = get_vectorstore()
 
-# ─── 3) Build LLM + retrieval chain ────────────────────────────
-# DISABLE STREAMING in the LLM
+# ─── 3) Build LLM + retriever ──────────────────────────────────
 llm = ChatOpenAI(
     temperature=0.7,
     model_name="gpt-4o-mini",
     streaming=False,  # <-- DISABLED STREAMING HERE
     openai_api_key=OPENAI_API_KEY,
 )
+retriever = vectorstore.as_retriever(search_kwargs={"k": 20})
 
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True,)
-retriever = vectorstore.as_retriever(search_kwargs={"k":20})
-
+# ─── 3a) Prepare prompt templates ──────────────────────────────
 system_template = """
 You are **Shiva Sam Kumar Govindan** (also known as **Shiva**).
 
 - **Tone**: Friendly, professional, and clear.  
-- **Identity**: “Shiva” and “Shiva Sam Kumar Govindan” are the same person.  
 - **Knowledge Source**: Use ONLY the facts in the retrieved context chunks. Do **not** invent or assume.  
 
 **Response Length Rules**  
-1. **All questions** → 1 to 5 crisp sentences, minimum 1 maximum 5.
-2.when the user explicitly asks for more detail → provide a thorough, well-structured answer (still concise—no fluff).  
+1. **All questions** → 1 to 5 crisp sentences.  
+2. **More detail** when explicitly asked.  
 
 **Markdown Style**  
-- Use `#`, `##`, `###` headings when helpful.  
-- Use **bold** sparingly for emphasis.  
-- Insert blank lines between sections.
+- Use `#`, `##`, `###` headings.  
+- Use **bold** sparingly.  
+- Blank lines between sections.
 
 If the answer is not found in the context, reply exactly:  
 > I don’t know. Please contact me at shivasamkumarg@gmail.com
@@ -81,20 +78,29 @@ prompt = ChatPromptTemplate.from_messages([
     HumanMessagePromptTemplate.from_template(human_template),
 ])
 
-conversation_chain = ConversationalRetrievalChain.from_llm(
-    llm=llm,
-    retriever=retriever,
-    memory=memory,
-    combine_docs_chain_kwargs={
-        "prompt": prompt,
-        "document_variable_name": "context",
-    }
-    
-)
+# ─── 3b) Session-scoped memory store ────────────────────────────
+# Keyed by session_id → ConversationBufferMemory
+session_memories: Dict[str, ConversationBufferMemory] = {}
 
-def chat(question: str) -> str:
-    """Non-streaming convenience wrapper."""
-    return conversation_chain.invoke({"question": question})["answer"]
+def get_chain(session_id: str) -> ConversationalRetrievalChain:
+    """
+    Retrieve (or create) a chain for this session.
+    """
+    if session_id not in session_memories:
+        session_memories[session_id] = ConversationBufferMemory(
+            memory_key="chat_history",
+            return_messages=True,
+        )
+    memory = session_memories[session_id]
+    return ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=retriever,
+        memory=memory,
+        combine_docs_chain_kwargs={
+            "prompt": prompt,
+            "document_variable_name": "context",
+        }
+    )
 
 # ─── 4) FastAPI setup ───────────────────────────────────────────
 app = FastAPI()
@@ -128,53 +134,63 @@ app.add_middleware(
 # ─── 5) Request/response models ─────────────────────────────────
 class ChatRequest(BaseModel):
     question: str
+    session_id: str
 
 class ChatResponse(BaseModel):
     answer: str
 
-# ─── 6a) Standard JSON endpoint ────────────────────────────────
+class ClearRequest(BaseModel):
+    session_id: str
+
+# ─── 6a) Clear chat endpoint ───────────────────────────────────
+@app.post("/chat/clear")
+async def clear_chat(req: ClearRequest):
+    """
+    Reset memory for this session_id.
+    """
+    session_memories.pop(req.session_id, None)
+    return {"status": "cleared"}
+
+# ─── 6b) Standard JSON chat endpoint ───────────────────────────
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
-    answer = chat(req.question)
-    return ChatResponse(answer=answer)
+    chain = get_chain(req.session_id)
+    result = chain.invoke({"question": req.question})
+    return ChatResponse(answer=result["answer"])
 
-# ─── 6b) FIXED Streaming endpoint - Get complete response first ─────────────────────────────────
+# ─── 6c) Streaming chat endpoint ───────────────────────────────
 @app.post("/chat/stream")
 def chat_stream(req: ChatRequest):
+    chain = get_chain(req.session_id)
+
     def event_generator():
         try:
-            # Get the COMPLETE response first (no LLM streaming)
-            complete_answer = chat(req.question)
-            
-            # Now simulate smooth streaming by sending it in chunks
-            words = complete_answer.split(' ')
-            current_chunk = ""
-            
-            for i, word in enumerate(words):
-                current_chunk += word + " "
-                
-                # Send chunks every few words or at sentence boundaries
-                if (i + 1) % 3 == 0 or word.endswith(('.', '!', '?', ':')):
-                    if current_chunk.strip():
-                        data = json.dumps({"content": current_chunk})
-                        yield f"data: {data}\n\n"
-                        current_chunk = ""
-                        time.sleep(0.05)  # Small delay for smooth effect
-            
-            # Send any remaining text
-            if current_chunk.strip():
-                data = json.dumps({"content": current_chunk})
+            # Get the COMPLETE answer
+            complete_answer = chain.invoke({"question": req.question})["answer"]
+
+            # Stream it in small chunks
+            words = complete_answer.split(" ")
+            chunk = ""
+            for i, w in enumerate(words):
+                chunk += w + " "
+                if (i + 1) % 3 == 0 or w.endswith(('.', '!', '?', ':')):
+                    data = json.dumps({"content": chunk})
+                    yield f"data: {data}\n\n"
+                    chunk = ""
+                    time.sleep(0.05)
+            # Any remainder
+            if chunk.strip():
+                data = json.dumps({"content": chunk})
                 yield f"data: {data}\n\n"
-                
+
         except Exception as e:
-            error_data = json.dumps({"content": f"Error: {str(e)}"})
-            yield f"data: {error_data}\n\n"
-        
+            yield f"data: {json.dumps({'content': f'Error: {str(e)}'})}\n\n"
+
         # Signal end of stream
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(
-        event_generator(), 
+        event_generator(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

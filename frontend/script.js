@@ -1,3 +1,10 @@
+// ——— per-tab session ID ———
+let sessionId = sessionStorage.getItem('session_id');
+if (!sessionId) {
+  sessionId = `${Date.now()}-${Math.random().toString(36).substr(2,9)}`;
+  sessionStorage.setItem('session_id', sessionId);
+}
+
 const API_URL = "/chat/stream";
 
 const logEl   = document.getElementById("chat-log");
@@ -34,23 +41,19 @@ function renderBot(md) {
     botDiv.innerHTML = `<strong>Shiva:</strong> <div class="bot-content"></div>`;
     logEl.appendChild(botDiv);
   }
-  
+
   const contentDiv = botDiv.querySelector(".bot-content");
-  
-  // Simple: just use marked.js directly
+
   try {
     if (typeof marked !== 'undefined') {
-      const html = marked.parse(md);
-      contentDiv.innerHTML = html;
+      contentDiv.innerHTML = marked.parse(md);
     } else {
-      // Basic fallback
-      const html = escapeHtml(md).replace(/\n/g, '<br>');
-      contentDiv.innerHTML = html;
+      contentDiv.innerHTML = escapeHtml(md).replace(/\n/g, '<br>');
     }
   } catch (e) {
     contentDiv.innerHTML = escapeHtml(md).replace(/\n/g, '<br>');
   }
-  
+
   scrollToBottom();
 }
 
@@ -78,7 +81,7 @@ btnEl.addEventListener("click", async () => {
     const resp = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question })
+      body: JSON.stringify({ question, session_id: sessionId })
     });
 
     if (!resp.ok) {
@@ -94,52 +97,47 @@ btnEl.addEventListener("click", async () => {
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      
-      buffer += decoder.decode(value, { stream: true });
 
+      buffer += decoder.decode(value, { stream: true });
       const chunks = buffer.split(/\n\n|\n(?=data:)/);
       buffer = chunks.pop() || "";
 
       for (let chunk of chunks) {
         chunk = chunk.trim();
         if (!chunk) continue;
-        
+
         let content = "";
-        
+
         if (chunk.startsWith("data:")) {
           content = chunk.replace(/^data:\s*/, "").trim();
-          
           if (content === "[DONE]" || content === "DONE") {
             setUIState(false);
             return;
           }
-          
           if (content.startsWith("{")) {
             try {
               const parsed = JSON.parse(content);
               content = parsed.content || parsed.message || parsed.text || parsed.delta || "";
-            } catch (e) {
-              // Use as-is
-            }
+            } catch {}
           }
         } else if (chunk.startsWith("{")) {
           try {
             const parsed = JSON.parse(chunk);
             content = parsed.content || parsed.message || parsed.text || parsed.delta || "";
-          } catch (e) {
+          } catch {
             content = chunk;
           }
         } else {
           content = chunk;
         }
-        
+
         if (content) {
           lastBotMd += content;
           renderBot(lastBotMd);
         }
       }
     }
-    
+
     if (buffer.trim()) {
       let content = buffer.trim();
       if (content.startsWith("data:")) {
@@ -150,8 +148,8 @@ btnEl.addEventListener("click", async () => {
         renderBot(lastBotMd);
       }
     }
-    
-  } catch (error) {
+
+  } catch {
     renderBot("Connection error. Please try again.");
   } finally {
     setUIState(false);
@@ -164,3 +162,17 @@ inputEl.addEventListener("keypress", (e) => {
     btnEl.click();
   }
 });
+
+// ——— “New Chat” button: clear UI + server memory ———
+const newChatBtn = document.getElementById('new-chat-btn');
+async function clearChat() {
+  logEl.innerHTML = '';
+  await fetch('/chat/clear', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId })
+  });
+}
+if (newChatBtn) {
+  newChatBtn.addEventListener('click', clearChat);
+}
